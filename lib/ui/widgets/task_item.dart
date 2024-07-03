@@ -1,50 +1,173 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:task_manager/data/models/network_response.dart';
+import 'package:task_manager/data/models/task_model.dart';
+import 'package:task_manager/data/network_caller/network_caller.dart';
+import 'package:task_manager/data/utilities/urls.dart';
+import 'package:task_manager/ui/screens/completed_task_screen.dart';
+import 'package:task_manager/ui/screens/in_progress_screen.dart';
+import 'package:task_manager/ui/screens/new_task_screen.dart';
 
-class TaskItem extends StatelessWidget {
+import 'package:task_manager/ui/widgets/centered_progress_indicator.dart';
+import 'package:task_manager/ui/widgets/snack_bar_message.dart';
+
+import '../screens/cancled_task_screen.dart';
+
+class TaskItem extends StatefulWidget {
   const TaskItem({
     super.key,
+    required this.taskModel,
+    required this.onUpdateTask,
   });
+
+  final TaskModel taskModel;
+  final VoidCallback onUpdateTask;
+
+  @override
+  State<TaskItem> createState() => _TaskItemState();
+}
+
+class _TaskItemState extends State<TaskItem> {
+  bool _deleteInProgress = false;
+  bool _editInProgress = false;
+  String dropdownValue = '';
+  List<String> statusList = [
+    'New',
+    'Progress',
+    'Completed',
+    'Cancelled',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    dropdownValue = widget.taskModel.status!;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
       color: Colors.white,
       child: ListTile(
-
-        title: Text("This is my task"),
+        title: Text(widget.taskModel.title ?? ''),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Description will be here"),
-            Text("Date: 12/12/24",style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w500
-            ),),
+            Text(widget.taskModel.description ?? ''),
+            Text(
+              'Date: ${widget.taskModel.createdDate}',
+              style: const TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.w600),
+            ),
             Row(
-              mainAxisAlignment:MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Chip(label:
-                Text("New"),shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                Chip(
+                  label: Text(widget.taskModel.status ?? 'New'),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 ),
-                  padding: EdgeInsets.symmetric(horizontal: 8,vertical: 2),),
-
                 ButtonBar(
-
                   children: [
-                    IconButton(onPressed: (){}, icon:Icon(Icons.delete)),
-                    IconButton(onPressed: (){}, icon:Icon(Icons.edit)),
+                    Visibility(
+                      visible: _deleteInProgress == false,
+                      replacement: const CenteredProgressIndicator(),
+                      child: IconButton(
+                        onPressed: () {
+                          _deleteTask();
+                        },
+                        icon: const Icon(Icons.delete),
+                      ),
+                    ),
+                    Visibility(
+                      visible: _editInProgress == false,
+                      replacement: const CenteredProgressIndicator(),
+                      child: PopupMenuButton<String>(
+                        icon: const Icon(Icons.edit),
+                        onSelected: (String selectedValue) {
+                          _handleStatusChange(selectedValue);
+                        },
+                        itemBuilder: (BuildContext context) {
+                          return statusList.map((String value) {
+                            return PopupMenuItem<String>(
+                              value: value,
+                              child: ListTile(
+                                title: Text(value),
+                                trailing: dropdownValue == value
+                                    ? const Icon(Icons.done)
+                                    : null,
+                              ),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
                   ],
                 )
               ],
             )
-
           ],
         ),
-
-
       ),
     );
+  }
+
+  Future<void> _deleteTask() async {
+    _deleteInProgress = true;
+    if (mounted) {
+      setState(() {});
+    }
+    NetworkResponse response =
+    await NetworkCaller.getRequest(Urls.deleteTask(widget.taskModel.sId!));
+
+    if (response.isSuccess) {
+      widget.onUpdateTask();
+    } else {
+      if (mounted) {
+        showSnackBarMessage(
+          context,
+          response.errorMessage ?? 'Get task count by status failed! Try again',
+        );
+      }
+    }
+    _deleteInProgress = false;
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _handleStatusChange(String selectedValue) {
+    setState(() {
+      dropdownValue = selectedValue;
+    });
+
+    switch (selectedValue) {
+      case 'New':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const NewTaskScreen()),
+        );
+        break;
+      case 'Progress':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const InProgressTaskScreen()),
+        );
+        break;
+      case 'Completed':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => CompleteTaskScreen()),
+        );
+        break;
+      case 'Cancelled':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CancelledTaskScreen()),
+        );
+        break;
+    }
   }
 }

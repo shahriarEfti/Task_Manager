@@ -1,9 +1,10 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class TaskSummaryCard extends StatelessWidget {
   const TaskSummaryCard({
-    super.key, required this.title, required this.count,
+    super.key,
+    required this.title,
+    required this.count,
   });
 
   final String title;
@@ -15,11 +16,17 @@ class TaskSummaryCard extends StatelessWidget {
       color: Colors.white,
       elevation: 3,
       child: Padding(
-        padding:  EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text(count,style: Theme.of(context).textTheme.titleLarge,),
-            Text(title,style: Theme.of(context).textTheme.titleSmall,)
+            Text(
+              count,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
           ],
         ),
       ),

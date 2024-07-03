@@ -1,27 +1,33 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-import 'package:task_manager/ui/screens/Auth/reset_password_screen.dart';
-import 'package:task_manager/ui/screens/Auth/sign_in_screen.dart';
-
+import 'package:task_manager/data/models/network_response.dart';
+import 'package:task_manager/data/network_caller/network_caller.dart';
+import 'package:task_manager/data/utilities/urls.dart';
+import 'package:task_manager/ui/screens/auth/reset_password_screen.dart';
+import 'package:task_manager/ui/screens/auth/sign_in_screen.dart';
 import 'package:task_manager/ui/utility/app_colors.dart';
+
 import 'package:task_manager/ui/widgets/background_widget.dart';
 
 class PinVerificationScreen extends StatefulWidget {
-  const PinVerificationScreen({super.key});
+  const PinVerificationScreen({super.key, required this.email});
+
+  final String email;
 
   @override
   State<PinVerificationScreen> createState() => _PinVerificationScreenState();
 }
 
 class _PinVerificationScreenState extends State<PinVerificationScreen> {
-
-
-  final TextEditingController _pinTEController= TextEditingController();
-
-
-
+  final TextEditingController _pinTEController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _loadingInProgress = false;
+  bool _isResendEnabled = true;
+  int _start = 60;
+  late Timer _timer;
 
   @override
   Widget build(BuildContext context) {
@@ -31,46 +37,42 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const  SizedBox(height: 100),
-                  Text(
-                    'Pin Verification',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  Text(
-                    ' A 6 digits  verification pin has been sent your e-mail address',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const  SizedBox(height: 24),
-                  _buildPinCodeTextField(),
-
-
-                  SizedBox(height: 16),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed:_onTapVerifyOtpButton,
-                      child: Text(
-                        "Verify"
-                      ),
-
-
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 100),
+                    Text(
+                      'Pin Verification',
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-
-
-
-                  ),
-                  SizedBox(height: 36),
-                  _buildSignInSection()
-                ],
+                    Text(
+                      'A 6 digits verification pin has been sent to your email address',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildPinCodeTextField(),
+                    const SizedBox(height: 16),
+                    _loadingInProgress
+                        ? const Center(child: CircularProgressIndicator())
+                        : ElevatedButton(
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          _otpVerification();
+                        }
+                      },
+                      child: const Text('Verify'),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildResendOtpSection(),
+                    const SizedBox(height: 36),
+                    _buildSignInSection(),
+                  ],
+                ),
               ),
-
             ),
-
-
           ),
-
         ),
       ),
     );
@@ -78,85 +80,198 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
 
   Widget _buildSignInSection() {
     return Center(
-                  child:
-                RichText(
-                        text:TextSpan(
-                          style: TextStyle(
-                            color: Colors.black.withOpacity(0.8),
-                            fontWeight:FontWeight.w600,
-                            letterSpacing: 0.4,
-                          ),
-                          text: " Have  Account?",
-                          children: [
-                            TextSpan(
-
-                          text: 'Sign In',
-                              style: TextStyle(
-                                color: AppColors.themeColor,
-
-                              ),
-                              recognizer: TapGestureRecognizer()..onTap=(){
-                                _onTapSignInButton();
-                              }),
-
-
-
-                          ]
-                        )
-
-
-
-                      ),
-
-
-                );
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(
+            color: Colors.black.withOpacity(0.8),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.4,
+          ),
+          text: "Have an account? ",
+          children: [
+            TextSpan(
+              text: 'Sign in',
+              style: const TextStyle(color: AppColors.themeColor),
+              recognizer: TapGestureRecognizer()..onTap = _onTapSignInButton,
+            )
+          ],
+        ),
+      ),
+    );
   }
 
- Widget _buildPinCodeTextField() {
+  Widget _buildPinCodeTextField() {
     return PinCodeTextField(
-                  length: 6,
-
-                  animationType: AnimationType.fade,
-                  pinTheme: PinTheme(
-                    shape: PinCodeFieldShape.box,
-                    borderRadius: BorderRadius.circular(5),
-                    fieldHeight: 50,
-                    fieldWidth: 40,
-                    activeFillColor: Colors.white,
-                    selectedColor: AppColors.themeColor,
-                    selectedFillColor: Colors.white,
-                    inactiveFillColor: Colors.white
-                  ),
-                  animationDuration: Duration(milliseconds: 300),
-                  backgroundColor: Colors.transparent,
-                  keyboardType: TextInputType.number,
-
-                  enableActiveFill: true,
-
-                  controller: _pinTEController,
-                    appContext:context,
-                );
+      length: 6,
+      animationType: AnimationType.fade,
+      pinTheme: PinTheme(
+        shape: PinCodeFieldShape.box,
+        borderRadius: BorderRadius.circular(5),
+        fieldHeight: 50,
+        fieldWidth: 40,
+        activeFillColor: Colors.white,
+        selectedFillColor: Colors.white,
+        inactiveFillColor: Colors.white,
+        selectedColor: AppColors.themeColor,
+      ),
+      animationDuration: const Duration(milliseconds: 300),
+      backgroundColor: Colors.transparent,
+      keyboardType: TextInputType.number,
+      enableActiveFill: true,
+      controller: _pinTEController,
+      appContext: context,
+    );
   }
 
-
-  void _onTapSignInButton()
-  {
-    Navigator.push(context, MaterialPageRoute(builder: (context)=>SignInScreen()));
+  Widget _buildResendOtpSection() {
+    return Center(
+      child: TextButton(
+        onPressed: _isResendEnabled ? _resendOtp : null,
+        child: Text(
+          _isResendEnabled
+              ? 'Resend OTP'
+              : 'Resend OTP in $_start seconds',
+          style: const TextStyle(color: AppColors.themeColor),
+        ),
+      ),
+    );
   }
 
-  void _onTapVerifyOtpButton()
-  {
-    Navigator.push(context, MaterialPageRoute(builder: (context)=>ResetPasswordScreen()));
+  void _onTapSignInButton() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const SignInScreen()),
+          (route) => false,
+    );
   }
 
+  Future<void> _otpVerification() async {
+    setState(() {
+      _loadingInProgress = true;
+    });
 
+    String otp = _pinTEController.text.trim();
 
+    NetworkResponse response = await NetworkCaller.getRequest(
+      "${Urls.recoverVerifyOTP}/${widget.email}/$otp",
+    );
 
+    setState(() {
+      _loadingInProgress = false;
+    });
+
+    if (response.responseData['status'] == 'success') {
+      _clearOtpField();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              ResetPasswordScreen(email: '',otp: '',),
+        ),
+      );
+    } else if (response.responseData['status'] == 'fail') {
+      _clearOtpField();
+      if (mounted) {
+        _oneButtonDialog(
+          context,
+          "Failed!",
+          "Please enter a valid OTP!",
+          Icons.error_outline_rounded,
+        );
+      }
+    } else {
+      _clearOtpField();
+      if (mounted) {
+        _oneButtonDialog(
+          context,
+          "Failed!",
+          "Something went wrong!",
+          Icons.task_alt,
+        );
+      }
+    }
+  }
+
+  void _clearOtpField() {
+    _pinTEController.clear();
+  }
+
+  Future<void> _resendOtp() async {
+    setState(() {
+      _isResendEnabled = false;
+      _start = 60;
+    });
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_start == 0) {
+          _isResendEnabled = true;
+          _timer.cancel();
+        } else {
+          _start--;
+        }
+      });
+    });
+
+    NetworkResponse response = await NetworkCaller.getRequest(
+      "${Urls.recoverVerifyEmail}/${widget.email}",
+    );
+
+    if (response.responseData['status'] == 'fail') {
+      if (mounted) {
+        _oneButtonDialog(
+          context,
+          "Failed!",
+          "This email is not registered!",
+          Icons.error_outline_rounded,
+        );
+      }
+    } else if (response.responseData['status'] == 'success') {
+      if (mounted) {
+        _oneButtonDialog(
+          context,
+          "Success!",
+          "OTP has been resent to your email.",
+          Icons.task_alt,
+        );
+      }
+    } else {
+      if (mounted) {
+        _oneButtonDialog(
+          context,
+          "Failed!",
+          "Something went wrong!",
+          Icons.task_alt,
+        );
+      }
+    }
+  }
+
+  void _oneButtonDialog(BuildContext context, String title, String message, IconData icon) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(icon, color: Theme.of(context).colorScheme.secondary),
+            const SizedBox(width: 8),
+            Text(title),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
-void dispose(){
- _pinTEController.dispose();
-  super.dispose();
-
-}
+  void dispose() {
+    _pinTEController.dispose();
+    _timer.cancel();
+    super.dispose();
+  }
 }

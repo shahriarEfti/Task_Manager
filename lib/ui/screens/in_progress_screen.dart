@@ -1,27 +1,23 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:task_manager/ui/widgets/task_item.dart';
 
-import '../widgets/profile_app_bar.dart';
-import '../widgets/task_item.dart';
-
-class InProgressScreen extends StatefulWidget {
-  const InProgressScreen({super.key});
+class InProgressTaskScreen extends StatefulWidget {
+  const InProgressTaskScreen({super.key});
 
   @override
-  State<InProgressScreen> createState() => _InProgressScreenState();
+  State<InProgressTaskScreen> createState() => _InProgressTaskScreenState();
 }
 
-class _InProgressScreenState extends State<InProgressScreen> {
+class _InProgressTaskScreenState extends State<InProgressTaskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
-        body: ListView.builder(
-            itemCount: 5,
-            itemBuilder: (context,index){
-              return TaskItem();
-            }));
-
+      body: ListView.builder(
+        itemCount: 5,
+        itemBuilder: (context, index) {
+          // return const TaskItem();
+        },
+      ),
+    );
   }
 }
-

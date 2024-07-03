@@ -1,25 +1,30 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:task_manager/ui/screens/Auth/sign_in_screen.dart';
-
+import 'package:task_manager/ui/screens/auth/sign_in_screen.dart';
 import 'package:task_manager/ui/utility/app_colors.dart';
 import 'package:task_manager/ui/widgets/background_widget.dart';
+import 'package:task_manager/data/network_caller/network_caller.dart';
+import 'package:task_manager/data/utilities/urls.dart';
+import 'package:task_manager/data/models/network_response.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+  const ResetPasswordScreen({
+    super.key,
+    required this.email,
+    required this.otp,
+  });
+
+  final String email;
+  final String otp;
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-
-
-  final TextEditingController _passwordTEController= TextEditingController();
-  final TextEditingController _confirmpasswordTEController= TextEditingController();
-
-
+  final TextEditingController _confirmPasswordTEController = TextEditingController();
+  final TextEditingController _passwordTEController = TextEditingController();
+  bool _loadingInProgress = false;
 
   @override
   Widget build(BuildContext context) {
@@ -32,114 +37,151 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const  SizedBox(height: 100),
+                  const SizedBox(height: 100),
                   Text(
                     'Set Password',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   Text(
-                    ' Minimum length of  password  8 character with letter number and combination',
+                    'Minimum length of password should be more than 6 letters and, combination of numbers and letters',
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  const  SizedBox(height: 24),
+                  const SizedBox(height: 24),
                   TextFormField(
                     controller: _passwordTEController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      hintText: ' Password ',
-
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
+                    decoration: const InputDecoration(hintText: 'Password'),
+                    obscureText: true,
                   ),
-                  const  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   TextFormField(
-                    controller: _confirmpasswordTEController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      hintText: ' Confirm Password ',
-
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
+                    controller: _confirmPasswordTEController,
+                    decoration: const InputDecoration(hintText: 'Confirm Password'),
+                    obscureText: true,
                   ),
-
-
-
-                  SizedBox(height: 16),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: _onTapConfirmButton,
-                      child: Text(
-                          "Confrim"
-                      ),
-
-
-                    ),
-
-
-
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _onTapConfirmButton,
+                    child: const Text('Confirm'),
                   ),
-                  SizedBox(height: 36),
+                  const SizedBox(height: 36),
                   Center(
-                    child:
-                  RichText(
-                          text:TextSpan(
-                            style: TextStyle(
-                              color: Colors.black.withOpacity(0.8),
-                              fontWeight:FontWeight.w600,
-                              letterSpacing: 0.4,
-                            ),
-                            text: " Have  Account?",
-                            children: [
-                              TextSpan(
-
-                            text: 'Sign In',
-                                style: TextStyle(
-                                  color: AppColors.themeColor,
-
-                                ),
-                                recognizer: TapGestureRecognizer()..onTap=(){
-                                  _onTapSignInButton();
-                                }),
-
-
-
-                            ]
-                          )
-
-
-
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(
+                          color: Colors.black.withOpacity(0.8),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.4,
                         ),
-
-
+                        text: "Have an account? ",
+                        children: [
+                          TextSpan(
+                            text: 'Sign in',
+                            style: const TextStyle(color: AppColors.themeColor),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = _onTapSignInButton,
+                          )
+                        ],
+                      ),
+                    ),
                   )
                 ],
               ),
-
             ),
-
-
           ),
-
         ),
       ),
     );
   }
 
-
-  void _onTapSignInButton()
-  {
-    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=>SignInScreen()), (route)=>false);
+  void _onTapSignInButton() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const SignInScreen()),
+          (route) => false,
+    );
   }
 
-  void _onTapConfirmButton()
-  {
-    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=>SignInScreen()), (route)=>false);
+  void _onTapConfirmButton() {
+    if (_passwordTEController.text == _confirmPasswordTEController.text) {
+      _resetPassword();
+    } else {
+      _showErrorDialog("Passwords do not match!");
+    }
   }
-@override
-void dispose(){
-  _confirmpasswordTEController.dispose();
-  _passwordTEController.dispose();
-  super.dispose();
 
-}
+  Future<void> _resetPassword() async {
+    setState(() {
+      _loadingInProgress = true;
+    });
+
+    Map<String, dynamic> requestInput = {
+      "email": widget.email,
+      "OTP": widget.otp,
+      "password": _confirmPasswordTEController.text
+    };
+
+    NetworkResponse response = await NetworkCaller.postRequest(
+      Urls.recoverResetPass,
+      body: requestInput,
+    );
+
+    setState(() {
+      _loadingInProgress = false;
+    });
+
+    if (response.responseData['status'] == 'success') {
+      _clearTextField();
+      _showSuccessDialog("Password reset success.");
+    } else {
+      _clearTextField();
+      _showErrorDialog("Something went wrong, try again.");
+    }
+  }
+
+  void _clearTextField() {
+    _passwordTEController.clear();
+    _confirmPasswordTEController.clear();
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Success'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _onTapSignInButton();
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _passwordTEController.dispose();
+    _confirmPasswordTEController.dispose();
+    super.dispose();
+  }
 }
