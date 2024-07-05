@@ -47,7 +47,8 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
                   TextFormField(
                     controller: _descriptionTEController,
                     maxLines: 4,
-                    decoration: const InputDecoration(hintText: 'Description'),
+                    decoration:
+                    const InputDecoration(hintText: 'Description'),
                     validator: (String? value) {
                       if (value?.trim().isEmpty ?? true) {
                         return 'Enter description';
@@ -57,7 +58,7 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
                   ),
                   const SizedBox(height: 16),
                   Visibility(
-                    visible: _addNewTaskInProgress == false,
+                    visible: !_addNewTaskInProgress,
                     replacement: const CenteredProgressIndicator(),
                     child: ElevatedButton(
                       onPressed: () {
@@ -78,32 +79,31 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
   }
 
   Future<void> _addNewTask() async {
-    _addNewTaskInProgress = true;
-    if (mounted) {
-      setState(() {});
-    }
+    setState(() {
+      _addNewTaskInProgress = true;
+    });
+
     Map<String, dynamic> requestData = {
       "title": _titleTEController.text.trim(),
       "description": _descriptionTEController.text.trim(),
       "status": "New",
     };
-    NetworkResponse response = await NetworkCaller.postRequest(
+
+    NetworkResponse response = await NetworkCaller.postResponse(
       Urls.createTask,
       body: requestData,
     );
-    _addNewTaskInProgress = false;
-    if (mounted) {
-      setState(() {});
-    }
+
+    setState(() {
+      _addNewTaskInProgress = false;
+    });
+
     if (response.isSuccess) {
       _clearTextFields();
-      if (mounted) {
-        showSnackBarMessage(context, 'New task added!');
-      }
+      showSnackBarMessage(context, 'New task added!');
+      Navigator.pop(context);
     } else {
-      if (mounted) {
-        showSnackBarMessage(context, 'New task add failed! Try again.', true);
-      }
+      showSnackBarMessage(context, 'New task add failed! Try again.', true);
     }
   }
 

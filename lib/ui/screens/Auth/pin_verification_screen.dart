@@ -9,11 +9,10 @@ import 'package:task_manager/data/utilities/urls.dart';
 import 'package:task_manager/ui/screens/auth/reset_password_screen.dart';
 import 'package:task_manager/ui/screens/auth/sign_in_screen.dart';
 import 'package:task_manager/ui/utility/app_colors.dart';
-
 import 'package:task_manager/ui/widgets/background_widget.dart';
 
 class PinVerificationScreen extends StatefulWidget {
-  const PinVerificationScreen({super.key, required this.email});
+  const PinVerificationScreen({Key? key, required this.email}) : super(key: key);
 
   final String email;
 
@@ -47,6 +46,7 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
                       'Pin Verification',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
+                    const SizedBox(height: 8),
                     Text(
                       'A 6 digits verification pin has been sent to your email address',
                       style: Theme.of(context).textTheme.titleSmall,
@@ -152,7 +152,7 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
 
     String otp = _pinTEController.text.trim();
 
-    NetworkResponse response = await NetworkCaller.getRequest(
+    NetworkResponse response = await NetworkCaller.getResponse(
       "${Urls.recoverVerifyOTP}/${widget.email}/$otp",
     );
 
@@ -160,13 +160,12 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
       _loadingInProgress = false;
     });
 
-    if (response.responseData['status'] == 'success') {
+    if (response.isSuccess && response.responseData['status'] == 'success') {
       _clearOtpField();
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              ResetPasswordScreen(email: '',otp: '',),
+          builder: (context) => ResetPasswordScreen(email: widget.email, otp: otp),
         ),
       );
     } else if (response.responseData['status'] == 'fail') {
@@ -186,7 +185,7 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
           context,
           "Failed!",
           "Something went wrong!",
-          Icons.task_alt,
+          Icons.error_outline_rounded,
         );
       }
     }
@@ -212,11 +211,20 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
       });
     });
 
-    NetworkResponse response = await NetworkCaller.getRequest(
+    NetworkResponse response = await NetworkCaller.getResponse(
       "${Urls.recoverVerifyEmail}/${widget.email}",
     );
 
-    if (response.responseData['status'] == 'fail') {
+    if (response.isSuccess && response.responseData['status'] == 'success') {
+      if (mounted) {
+        _oneButtonDialog(
+          context,
+          "Success!",
+          "OTP has been resent to your email.",
+          Icons.check_circle_outline_rounded,
+        );
+      }
+    } else if (response.responseData['status'] == 'fail') {
       if (mounted) {
         _oneButtonDialog(
           context,
@@ -225,22 +233,13 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
           Icons.error_outline_rounded,
         );
       }
-    } else if (response.responseData['status'] == 'success') {
-      if (mounted) {
-        _oneButtonDialog(
-          context,
-          "Success!",
-          "OTP has been resent to your email.",
-          Icons.task_alt,
-        );
-      }
     } else {
       if (mounted) {
         _oneButtonDialog(
           context,
           "Failed!",
           "Something went wrong!",
-          Icons.task_alt,
+          Icons.error_outline_rounded,
         );
       }
     }

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -89,11 +88,12 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   Visibility(
-                    visible: _updateProfileInProgress == false,
+                    visible: !_updateProfileInProgress,
                     replacement: const CenteredProgressIndicator(),
-                    child: ElevatedButton(
+                    child: ElevatedButton.icon(
                       onPressed: _updateProfile,
-                      child: const Icon(Icons.arrow_circle_right_outlined),
+                      icon: const Icon(Icons.arrow_circle_right_outlined),
+                      label: const Text('Update Profile'),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -107,11 +107,11 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   }
 
   Future<void> _updateProfile() async {
-    _updateProfileInProgress = true;
+    setState(() {
+      _updateProfileInProgress = true;
+    });
+
     String encodePhoto = AuthController.userData?.photo ?? '';
-    if (mounted) {
-      setState(() {});
-    }
 
     Map<String, dynamic> requestBody = {
       "email": _emailTEController.text,
@@ -129,8 +129,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       encodePhoto = base64Encode(file.readAsBytesSync());
       requestBody['photo'] = encodePhoto;
     }
+
     final NetworkResponse response =
-    await NetworkCaller.postRequest(Urls.updateProfile, body: requestBody);
+    await NetworkCaller.postResponse(Urls.profileUpdate, body: requestBody);
+
     if (response.isSuccess && response.responseData['status'] == 'success') {
       UserModel userModel = UserModel(
         email: _emailTEController.text,
@@ -139,20 +141,28 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
         lastName: _lastNameTEController.text.trim(),
         mobile: _mobileTEController.text.trim(),
       );
+
       await AuthController.saveUserData(userModel);
-      if (mounted) {
-        showSnackBarMessage(context, 'Profile updated!');
-      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Profile updated!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } else {
-      if (mounted) {
-        showSnackBarMessage(context,
-            response.errorMessage ?? 'Profile update failed! Try again');
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              response.errorMessage ?? 'Profile update failed! Try again'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-    _updateProfileInProgress = false;
-    if (mounted) {
-      setState(() {});
-    }
+
+    setState(() {
+      _updateProfileInProgress = false;
+    });
   }
 
   Widget _buildPhotoPickerWidget() {
@@ -162,7 +172,9 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
         width: double.maxFinite,
         height: 48,
         decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8), color: Colors.white),
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.white,
+        ),
         alignment: Alignment.centerLeft,
         child: Row(
           children: [
@@ -170,18 +182,20 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
               width: 100,
               height: 48,
               decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(8),
-                    bottomLeft: Radius.circular(8),
-                  ),
-                  color: Colors.grey),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  bottomLeft: Radius.circular(8),
+                ),
+                color: Colors.grey,
+              ),
               alignment: Alignment.center,
               child: const Text(
                 'Photo',
                 style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                    fontSize: 16),
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -191,7 +205,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                 maxLines: 1,
                 style: const TextStyle(overflow: TextOverflow.ellipsis),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -205,9 +219,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
     if (result != null) {
       _selectedImage = result;
-      if (mounted) {
-        setState(() {});
-      }
+      setState(() {});
     }
   }
 }

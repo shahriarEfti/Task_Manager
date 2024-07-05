@@ -3,90 +3,86 @@ import 'package:task_manager/data/models/network_response.dart';
 import 'package:task_manager/data/models/task_list_wrapper_model.dart';
 import 'package:task_manager/data/network_caller/network_caller.dart';
 import 'package:task_manager/data/utilities/urls.dart';
-import 'package:task_manager/ui/utility/app_colors.dart';
 import 'package:task_manager/ui/widgets/centered_progress_indicator.dart';
+import 'package:task_manager/ui/widgets/profile_app_bar.dart';
 import 'package:task_manager/ui/widgets/snack_bar_message.dart';
 import 'package:task_manager/ui/widgets/task_item.dart';
 
 import '../../data/models/task_model.dart';
-import '../widgets/profile_app_bar.dart';
 
-class CompleteTaskScreen extends StatefulWidget {
-  const CompleteTaskScreen({super.key});
+class CancelledTaskScreen extends StatefulWidget {
+  const CancelledTaskScreen({super.key});
 
   @override
-  State<CompleteTaskScreen> createState() => _CompleteTaskScreenState();
+  State<CancelledTaskScreen> createState() => _CancelledTaskScreenState();
 }
 
-class _CompleteTaskScreenState extends State<CompleteTaskScreen> {
-  bool _completeTaskInProgress = false;
-  List<TaskModel> completeTaskList = [];
+class _CancelledTaskScreenState extends State<CancelledTaskScreen> {
+  bool _cancelledTaskInProgress = false;
+  List<TaskModel> cancelledTaskList = [];
 
   @override
   void initState() {
     super.initState();
-    _getCompleteTask();
+    _getCancelledTask();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
 
-      body: RefreshIndicator(
+      body: _cancelledTaskInProgress
+          ? const CenteredProgressIndicator()
+          : RefreshIndicator(
         color: AppColor.themeColor,
         onRefresh: () async {
-          await _getCompleteTask();
+          await _getCancelledTask();
         },
-        child: Visibility(
-          visible: !_completeTaskInProgress,
-          replacement: const CenteredProgressIndicator(),
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: ListView.builder(
-              itemCount: completeTaskList.length,
-              itemBuilder: (context, index) {
-                return TaskListItem(
-                  taskModel: completeTaskList[index],
-                  labelBgColor: AppColor.completeLabelColor,
-                  onUpdateTask: () {
-                    _getCompleteTask();
-                  },
-                );
-              },
-            ),
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: ListView.builder(
+            itemCount: cancelledTaskList.length,
+            itemBuilder: (context, index) {
+              return TaskListItem(
+                taskModel: cancelledTaskList[index],
+                labelBgColor: AppColor.cancelledLabelColor,
+                onUpdateTask: () {
+                  _getCancelledTask();
+                },
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Future<void> _getCompleteTask() async {
+  Future<void> _getCancelledTask() async {
     setState(() {
-      _completeTaskInProgress = true;
+      _cancelledTaskInProgress = true;
     });
 
-    NetworkResponse response = await NetworkCaller.getResponse(Urls.completeTask);
+    NetworkResponse response = await NetworkCaller.getResponse(Urls.canceledTask);
 
     if (response.isSuccess) {
       TaskListWrapperModel taskListWrapperModel =
       TaskListWrapperModel.fromJson(response.responseData);
-      setState(() {
-        completeTaskList = taskListWrapperModel.taskList ?? [];
-      });
+      cancelledTaskList = taskListWrapperModel.taskList ?? [];
     } else {
       _setCustomToast(
-        response.errorMessage ?? "Get complete task failed!",
+        response.errorMessage ?? "Get cancelled task failed!",
         Icons.error_outline,
         AppColor.red,
         AppColor.white,
       );
     }
 
-    setState(() {
-      _completeTaskInProgress = false;
-    });
-  }
+    _cancelledTaskInProgress = false;
 
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
 
   void _setCustomToast(String message, IconData icon, Color bgColor, Color textColor) {
@@ -111,7 +107,7 @@ class _CompleteTaskScreenState extends State<CompleteTaskScreen> {
 
 class AppColor {
   static const themeColor = Colors.blue;
-  static const completeLabelColor = Colors.green;
+  static const cancelledLabelColor = Colors.red;
   static const red = Colors.red;
   static const white = Colors.white;
 }

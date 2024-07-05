@@ -7,8 +7,6 @@ import 'package:task_manager/ui/screens/auth/pin_verification_screen.dart';
 import 'package:task_manager/ui/utility/app_colors.dart';
 import 'package:task_manager/ui/widgets/background_widget.dart';
 
-
-
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key});
 
@@ -36,6 +34,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     'Your Email Address',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
+                  const SizedBox(height: 8),
                   Text(
                     'A 6 digits verification pin will be sent to your email address',
                     style: Theme.of(context).textTheme.titleSmall,
@@ -94,48 +93,40 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   Future<void> _sendOtp() async {
-    _otpSendInProgress = true;
-    if (mounted) {
-      setState(() {});
-    }
+    setState(() {
+      _otpSendInProgress = true;
+    });
 
     String email = _emailTEController.text.trim();
 
-    NetworkResponse response = await NetworkCaller.getRequest(
+    NetworkResponse response = await NetworkCaller.getResponse(
       "${Urls.recoverVerifyEmail}/$email",
     );
 
-    _otpSendInProgress = false;
-    if (mounted) {
-      setState(() {});
-    }
+    setState(() {
+      _otpSendInProgress = false;
+    });
 
-    if (response.responseData['status'] == 'success') {
+    if (response.isSuccess && response.responseData['status'] == 'success') {
       _clearTextField();
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PinVerificationScreen(email: email),
-          ),
-        );
-      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PinVerificationScreen(email: email),
+        ),
+      );
     } else if (response.responseData['status'] == 'fail') {
-      if (mounted) {
-        _showDialog(
-          "Failed!",
-          "This email is not registered!",
-          Icons.error_outline_rounded,
-        );
-      }
+      _showDialog(
+        "Failed!",
+        "This email is not registered!",
+        Icons.error_outline_rounded,
+      );
     } else {
-      if (mounted) {
-        _showDialog(
-          "Failed!",
-          "Something went wrong!",
-          Icons.task_alt,
-        );
-      }
+      _showDialog(
+        "Failed!",
+        "Something went wrong!",
+        Icons.error_outline_rounded,
+      );
     }
   }
 
@@ -165,4 +156,3 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     super.dispose();
   }
 }
-

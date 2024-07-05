@@ -1,28 +1,23 @@
 class Urls {
- static const String _baseUrl = 'https://task.teamrabbil.com/api/v1';
+ static const _baseUrl = "https://task.teamrabbil.com/api/v1";
 
- // Auth endpoints
- static const String registration = '$_baseUrl/registration';
- static const String login = '$_baseUrl/login';
+ static const registration = "$_baseUrl/registration";
+ static const login = "$_baseUrl/login";
+ static const profileUpdate = "$_baseUrl/profileUpdate";
+ static const createTask = "$_baseUrl/createTask";
 
- // Task management endpoints
- static const String createTask = '$_baseUrl/createTask';
- static const String newTasks = '$_baseUrl/listTaskByStatus/New';
- static const String completedTasks = '$_baseUrl/listTaskByStatus/Completed';
- static const String taskStatusCount = '$_baseUrl/taskStatusCount';
- static const String recoverVerifyEmail = '$_baseUrl/RecoverVerifyEmail';
- static const String recoverVerifyOTP = '$_baseUrl/RecoverVerifyOTP';
- static const String recoverResetPass = '$_baseUrl/RecoverResetPass';
+ static updateTaskStatus(String id, String status) => "$_baseUrl/updateTaskStatus/$id/$status";
 
- // Task by status endpoints
- static const String newTask = '$_baseUrl/listTaskByStatus/New';
- static const String completeTask = '$_baseUrl/listTaskByStatus/Completed';
- static const String progressTask = '$_baseUrl/listTaskByStatus/Progress';
- static const String canceledTask = '$_baseUrl/listTaskByStatus/Canceled';
+ static String deleteTask(String id) => "$_baseUrl/deleteTask/$id";
 
- // Profile endpoints
- static const String updateProfile = '$_baseUrl/profileUpdate';
+ static const taskStatusCount = "$_baseUrl/taskStatusCount";
+ static const recoverVerifyEmail = "$_baseUrl/RecoverVerifyEmail";
+ static const recoverVerifyOTP = "$_baseUrl/RecoverVerifyOTP";
+ static const recoverResetPass = "$_baseUrl/RecoverResetPass";
 
- // Dynamic URL methods
- static String deleteTask(String id) => '$_baseUrl/deleteTask/$id';
+ //task by status
+ static const newTask = "$_baseUrl/listTaskByStatus/New";
+ static const completeTask = "$_baseUrl/listTaskByStatus/Completed";
+ static const progressTask = "$_baseUrl/listTaskByStatus/Progress";
+ static const canceledTask = "$_baseUrl/listTaskByStatus/Canceled";
 }

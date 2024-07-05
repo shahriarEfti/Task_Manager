@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 class TaskSummaryCard extends StatelessWidget {
   const TaskSummaryCard({
-    super.key,
+    Key? key,
     required this.title,
     required this.count,
-  });
+  }) : super(key: key);
 
   final String title;
   final String count;
